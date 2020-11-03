@@ -1,4 +1,4 @@
-//The following code can be shortened into one single statement(see @jrobi001 on GitHub), but for limited memory we have split the program into smaller chunks
+//The following code can be shortened into one single statement(see @jrobi001 on GitHub), but for limited RAM we have split the program into smaller chunks
 
 //Save each comment, user, and hashtag as unique nodes
 CREATE CONSTRAINT ON (comment:Comment) ASSERT comment.id IS UNIQUE;
