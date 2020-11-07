@@ -2,10 +2,10 @@
 // Written alongside @skeuomorph on github and based on additions and changes by @JAWorsfold on github
 
 // Changes:
-// - returned User, Hashtag and Hrl to using .name property instead of .id, so that nodes will show the property overlayed when displaying nodes in neo4j (neo4j will assign an id)
+// - returned User, Hashtag and Url to using .name property instead of .id, so that nodes will show the property overlayed when displaying nodes in neo4j (neo4j will assign an id)
 // - removed Link node labels on hashtag and url (messed with visualising nodes, both sometimes appeared same color on some searches)
 // - renamed Comment nodes to Tweet (personal preference)
-// - renamed Tweet->URL relationship as SHARES (was USES, same as hashtag, wanded to remove ambiguity)
+// - renamed Tweet->URL relationship as SHARES (was USES, same as hashtag, wanted to remove ambiguity)
 // - split up import statement again, only have 2GB ram spare on this machine, thee combined statement was too much for this PC 😅
 
 // The split up statements could be combined a little more, some statements are not too intensive
