@@ -22,7 +22,6 @@ CREATE CONSTRAINT ON (url:URL) ASSERT url.id IS UNIQUE;
 
 USING PERIODIC COMMIT 100
 LOAD CSV WITH HEADERS FROM 'file:///class-statuses-2020-10-17.csv' AS line
-WITH line LIMIT 100
 
 MERGE (comment:Comment {id: toInteger(line.id_str)})
 SET comment.text = line.text
