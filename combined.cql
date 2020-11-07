@@ -20,8 +20,9 @@ CREATE CONSTRAINT ON (hashtag:Hashtag) ASSERT hashtag.id IS UNIQUE;
 CREATE CONSTRAINT ON (url:URL) ASSERT url.id IS UNIQUE;
 // --------------------------------------------
 
-USING PERIODIC COMMIT 100
+USING PERIODIC COMMIT
 LOAD CSV WITH HEADERS FROM 'file:///class-statuses-2020-10-17.csv' AS line
+WITH line LIMIT 1000
 
 MERGE (comment:Comment {id: toInteger(line.id_str)})
 SET comment.text = line.text
@@ -37,14 +38,18 @@ SET user.location = line.user_location
 CREATE (user)-[:POSTS]->(comment)
 
 WITH comment, line, split(line.hashtags, '|') AS hashtags
-FOREACH (h in hashtags | merge (hashtag:Hashtag {id: toLower(h), type: 'hashtag'}) merge (comment)-[:USES]->(hashtag))
+FOREACH (h in hashtags | merge (hashtag:Hashtag {id: toLower(h), type: 'hashtag'}) merge (comment)-[:USES]->(hashtag) SET hashtag:Link)
 WITH comment, line, split(line.urls, '|') AS urls
-FOREACH (u in urls | merge (url:URL {id: toLower(u), type: 'url'}) merge (comment)-[:USES]->(url))
+FOREACH (u in urls | merge (url:URL {id: toLower(u), type: 'url'}) merge (comment)-[:USES]->(url) SET url:Link)
 WITH comment, line, split(line.user_mentions_id_str, '|') AS mentions
 FOREACH (m in mentions | merge (mentioned:User {id: m}) merge (comment)-[:MENTIONS]->(mentioned))
 WITH comment, line, split(line.created_at, ' ') AS dateTime
 SET comment.date = date(replace(dateTime[0], '/', '-'))
 SET comment.time = time(dateTime[1])
+WITH comment, line, CASE WHEN line.hate_score_consensus = '1' THEN [1] ELSE [] END AS hate
+FOREACH (x IN hate | SET comment:Hate)
+WITH comment, line, CASE WHEN line.in_reply_to_user_id_str <> 'None' THEN [toInteger(line.in_reply_to_user_id_str)] ELSE [] END AS replyid
+FOREACH (x IN replyid | merge (origin:Comment {id: x}) merge (comment)-[:`REPLIED TO`]->(origin))
 
 MERGE (user:User {id: line.user_id_str})
 WITH user, line, split(line.user_created_at, ' ') AS dateTime
@@ -62,12 +67,3 @@ SET user.created = date(replace(dateTime[0], '/', '-'))
 
 // --------------------------------------------
 // THESE WORK:
-
-// MATCH (comment { hate_score_consensus: true })
-// SET comment:`Hate Comment`
-
-// MATCH (hashtag { type: 'hashtag' })
-// SET hashtag:Link
-
-// MATCH (url { type: 'url' })
-// SET url:Link
