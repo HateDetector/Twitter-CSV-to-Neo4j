@@ -3,15 +3,6 @@
 // tested each part of the statement seperately and combined here for importing in one go
 // neo4j ran out of RAM on imports, so split the statement back up again (see 'twitter_csv_to_neo_chunks.cql')
 
-// available fields:
-// id_str,created_at,text,hashtags,media_urls,urls,user_mentions_screen_name,user_mentions_id_str,source,source_url,
-// in_reply_to_status_id_str,in_reply_to_user_id_str,in_reply_to_screen_name,user_id_str,user_screen_name,user_name,
-// user_location,user_created_at,geo,coordinates,place,contributors,is_quote_status,retweet_count,favorite_count,
-// lang,hate_score_logreg,hate_class_svm,hate_score_cnn,hate_score_consensus
-
-//MATCH (n) DETACH DELETE n;
-//CALL db.constraints
-
 // creating uniqueness constraints on node types
 // make sure to run these first and confirm they have run seccessfully before running the import statement
 CREATE CONSTRAINT ON (comment:Comment) ASSERT comment.id IS UNIQUE;
@@ -21,8 +12,7 @@ CREATE CONSTRAINT ON (url:URL) ASSERT url.id IS UNIQUE;
 // --------------------------------------------
 
 USING PERIODIC COMMIT
-LOAD CSV WITH HEADERS FROM 'file:///class-statuses-2020-10-17.csv' AS line
-WITH line LIMIT 1000
+LOAD CSV WITH HEADERS FROM 'file:///class-statuses-2020-11-03-part2.csv' AS line
 
 MERGE (comment:Comment {id: toInteger(line.id_str)})
 SET comment.text = line.text
@@ -48,22 +38,10 @@ SET comment.date = date(replace(dateTime[0], '/', '-'))
 SET comment.time = time(dateTime[1])
 WITH comment, line, CASE WHEN line.hate_score_consensus = '1' THEN [1] ELSE [] END AS hate
 FOREACH (x IN hate | SET comment:Hate)
-WITH comment, line, CASE WHEN line.in_reply_to_user_id_str <> 'None' THEN [toInteger(line.in_reply_to_user_id_str)] ELSE [] END AS replyid
+WITH comment, line, CASE WHEN line.in_reply_to_status_id_str <> 'None' THEN [toInteger(line.in_reply_to_status_id_str)] ELSE [] END AS replyid
 FOREACH (x IN replyid | merge (origin:Comment {id: x}) merge (comment)-[:`REPLIED TO`]->(origin))
 
 MERGE (user:User {id: line.user_id_str})
 WITH user, line, split(line.user_created_at, ' ') AS dateTime
 SET user.created = date(replace(dateTime[0], '/', '-'))
 ;
-
-// RUN THE BELOW SEPERATELY
-// --------------------------------------------
-// NEED TO TEST FIRST:
-
-// LOAD CSV WITH HEADERS FROM 'file:///class-statuses-2020-10-17.csv' AS line
-// WITH comment, toInteger(line.in_reply_to_user_id_str) AS replied
-// MERGE (r:Comment {id: replied}) 
-// MERGE (comment)-[:REPLIED]->(r)
-
-// --------------------------------------------
-// THESE WORK:
